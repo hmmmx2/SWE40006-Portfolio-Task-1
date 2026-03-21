@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Users/whisp/Documents/Portfolio Task:*)",
+      "Bash(grep -rn '\\\\$' \"/c/Users/whisp/Documents/Portfolio Task 1/fintrack/src/renderer/src/components/\" --include=\"*.tsx\")"
+    ]
+  }
+}
