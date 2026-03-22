@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Transaction, sampleTransactions } from './data/sampleData'
 import Sidebar from './components/Sidebar'
 import MainContent from './components/MainContent'
 import JustUpdatedToast from './components/JustUpdatedToast'
 import UpdateProgressToast from './components/UpdateProgressToast'
 
-export type ActiveView = 'dashboard' | 'transactions' | 'add' | 'insights'
+export type ActiveView = 'dashboard' | 'transactions' | 'add'
 export type FilterType = 'all' | 'income' | 'expense'
 
 export interface UpdateStatus {
@@ -15,6 +15,9 @@ export interface UpdateStatus {
   version?: string
 }
 
+// Update types that represent an active update in progress
+const ACTIVE_UPDATE_TYPES = new Set(['available', 'downloading', 'downloaded'])
+
 declare const __APP_VERSION__: string
 
 export default function App(): React.JSX.Element {
@@ -23,39 +26,75 @@ export default function App(): React.JSX.Element {
   const [filterType, setFilterType] = useState<FilterType>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
-  const [showUpdateToast, setShowUpdateToast] = useState(false)
+  const [updateToastVisible, setUpdateToastVisible] = useState(false)
+  const [showJustUpdatedToast, setShowJustUpdatedToast] = useState(false)
   const [updatedVersion, setUpdatedVersion] = useState<string>('')
+
+  // Ref so IPC callback always sees latest status without stale closure
+  const updateStatusRef = useRef<UpdateStatus | null>(null)
 
   // ── Detect just-updated on first launch after update ──────────────
   useEffect(() => {
     const STORAGE_KEY = 'fintrack-last-version'
     const currentVersion = __APP_VERSION__
     const lastVersion = localStorage.getItem(STORAGE_KEY)
-
     if (lastVersion !== null && lastVersion !== currentVersion) {
       setUpdatedVersion(currentVersion)
-      setShowUpdateToast(true)
+      setShowJustUpdatedToast(true)
     }
-
     localStorage.setItem(STORAGE_KEY, currentVersion)
   }, [])
 
   // ── Auto-updater IPC listener ──────────────────────────────────────
   useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.onUpdateStatus((data: UpdateStatus) => {
-        setUpdateStatus(data)
-        if (data.type === 'up-to-date' || data.type === 'checking') {
-          setTimeout(() => setUpdateStatus(null), 5000)
-        }
-      })
-    }
+    if (!window.electronAPI) return
+
+    window.electronAPI.onUpdateStatus((data: UpdateStatus) => {
+      const current = updateStatusRef.current
+
+      // If we are already in an active update flow, ignore silent
+      // background noise (checking / up-to-date) so the toast never
+      // disappears on its own while a download is in progress.
+      if (
+        current &&
+        ACTIVE_UPDATE_TYPES.has(current.type) &&
+        (data.type === 'checking' || data.type === 'up-to-date')
+      ) {
+        return
+      }
+
+      updateStatusRef.current = data
+      setUpdateStatus(data)
+
+      if (ACTIVE_UPDATE_TYPES.has(data.type)) {
+        // Show toast and keep it visible — never auto-hide during update
+        setUpdateToastVisible(true)
+      } else if (data.type === 'checking' || data.type === 'up-to-date') {
+        // Silently fade after 4 s — only if no active update running
+        setTimeout(() => {
+          if (
+            updateStatusRef.current?.type === 'checking' ||
+            updateStatusRef.current?.type === 'up-to-date'
+          ) {
+            setUpdateStatus(null)
+            updateStatusRef.current = null
+          }
+        }, 4000)
+      }
+    })
+
     return () => {
       if (window.electronAPI) window.electronAPI.removeUpdateListener()
     }
   }, [])
 
-  const dismissToast = useCallback(() => setShowUpdateToast(false), [])
+  // Hide toast UI — download keeps going silently in background.
+  // When download finishes (downloaded event), toast reappears automatically.
+  const handleUpdateToastClose = useCallback(() => {
+    setUpdateToastVisible(false)
+  }, [])
+
+  const dismissJustUpdatedToast = useCallback(() => setShowJustUpdatedToast(false), [])
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'createdAt'>): void => {
     const newTxn: Transaction = {
@@ -81,6 +120,12 @@ export default function App(): React.JSX.Element {
 
   const balance = totalIncome - totalExpenses
 
+  // Show the update toast only when visible flag is true AND status is active
+  const showUpdateProgressToast =
+    updateToastVisible &&
+    updateStatus !== null &&
+    ACTIVE_UPDATE_TYPES.has(updateStatus.type)
+
   return (
     <div className="flex h-screen bg-app text-ink overflow-hidden">
       <Sidebar
@@ -105,19 +150,17 @@ export default function App(): React.JSX.Element {
         />
       </div>
 
-      {/* Update progress toast — bottom right, shown during download lifecycle */}
-      {updateStatus &&
-        updateStatus.type !== 'checking' &&
-        updateStatus.type !== 'up-to-date' && (
-          <UpdateProgressToast
-            status={updateStatus}
-            onDismiss={() => setUpdateStatus(null)}
-          />
-        )}
+      {/* Update progress toast — persists until user closes or restarts */}
+      {showUpdateProgressToast && updateStatus && (
+        <UpdateProgressToast
+          status={updateStatus}
+          onClose={handleUpdateToastClose}
+        />
+      )}
 
-      {/* Just-updated toast — bottom right, appears once after update */}
-      {showUpdateToast && updatedVersion && (
-        <JustUpdatedToast version={updatedVersion} onDismiss={dismissToast} />
+      {/* Just-updated toast — appears once after update */}
+      {showJustUpdatedToast && updatedVersion && (
+        <JustUpdatedToast version={updatedVersion} onDismiss={dismissJustUpdatedToast} />
       )}
     </div>
   )
