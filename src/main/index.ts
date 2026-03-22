@@ -65,7 +65,7 @@ app.whenReady().then(() => {
 
   // ── User clicks "Restart Now" in the UpdateBanner ─────────────────
   ipcMain.on('restart-and-install', () => {
-    autoUpdater.quitAndInstall(false, true)
+    autoUpdater.quitAndInstall(true, true)
   })
 
   createWindow()
