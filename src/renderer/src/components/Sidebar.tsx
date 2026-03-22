@@ -1,4 +1,4 @@
-import { Wallet, LayoutDashboard, List, PlusCircle } from 'lucide-react'
+import { Wallet, LayoutDashboard, List, PlusCircle, Lightbulb } from 'lucide-react'
 import type { ActiveView } from '../App'
 
 interface SidebarProps {
@@ -32,6 +32,10 @@ export default function Sidebar({
     { id: 'add', label: 'Add Transaction', icon: <PlusCircle className="w-4 h-4" /> },
   ]
 
+  const insightsItems: { id: ActiveView; label: string; icon: React.ReactNode; badge?: string }[] = [
+    { id: 'insights', label: 'Insights', icon: <Lightbulb className="w-4 h-4" />, badge: 'New' },
+  ]
+
   return (
     <aside className="w-52 flex-shrink-0 h-screen bg-white border-r border-border flex flex-col">
       {/* Logo */}
@@ -61,6 +65,29 @@ export default function Sidebar({
             <span className="flex-1 text-left">{item.label}</span>
             {item.badge && (
               <span className="text-[10px] font-semibold bg-border text-muted px-1.5 py-0.5 rounded-full">
+                {item.badge}
+              </span>
+            )}
+          </button>
+        ))}
+
+        <p className="text-[10px] font-semibold text-faint uppercase tracking-widest px-2 mb-1 mt-4">
+          Insights
+        </p>
+        {insightsItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveView(item.id)}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium cursor-pointer mb-0.5 transition-colors ${
+              activeView === item.id
+                ? 'bg-active-nav text-ink font-semibold'
+                : 'text-muted hover:text-ink hover:bg-hover'
+            }`}
+          >
+            {item.icon}
+            <span className="flex-1 text-left">{item.label}</span>
+            {item.badge && (
+              <span className="text-[10px] font-semibold bg-income-bg text-income px-1.5 py-0.5 rounded-full">
                 {item.badge}
               </span>
             )}
