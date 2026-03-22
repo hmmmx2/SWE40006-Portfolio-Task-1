@@ -5,7 +5,7 @@ import MainContent from './components/MainContent'
 import JustUpdatedToast from './components/JustUpdatedToast'
 import UpdateProgressToast from './components/UpdateProgressToast'
 
-export type ActiveView = 'dashboard' | 'transactions' | 'add'
+export type ActiveView = 'dashboard' | 'transactions' | 'add' | 'insights'
 export type FilterType = 'all' | 'income' | 'expense'
 
 export interface UpdateStatus {
