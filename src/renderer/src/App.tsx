@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Transaction, sampleTransactions } from './data/sampleData'
 import Sidebar from './components/Sidebar'
 import UpdateBanner from './components/UpdateBanner'
 import MainContent from './components/MainContent'
+import JustUpdatedToast from './components/JustUpdatedToast'
 
 export type ActiveView = 'dashboard' | 'transactions' | 'add' | 'insights'
 export type FilterType = 'all' | 'income' | 'expense'
@@ -12,13 +13,32 @@ export interface UpdateStatus {
   message: string
 }
 
+declare const __APP_VERSION__: string
+
 export default function App(): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions)
   const [activeView, setActiveView] = useState<ActiveView>('dashboard')
   const [filterType, setFilterType] = useState<FilterType>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
+  const [showUpdateToast, setShowUpdateToast] = useState(false)
+  const [updatedVersion, setUpdatedVersion] = useState<string>('')
 
+  // ── Detect just-updated on first launch after update ──────────────
+  useEffect(() => {
+    const STORAGE_KEY = 'fintrack-last-version'
+    const currentVersion = __APP_VERSION__
+    const lastVersion = localStorage.getItem(STORAGE_KEY)
+
+    if (lastVersion !== null && lastVersion !== currentVersion) {
+      setUpdatedVersion(currentVersion)
+      setShowUpdateToast(true)
+    }
+
+    localStorage.setItem(STORAGE_KEY, currentVersion)
+  }, [])
+
+  // ── Auto-updater IPC listener ──────────────────────────────────────
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.onUpdateStatus((data: UpdateStatus) => {
@@ -32,6 +52,8 @@ export default function App(): React.JSX.Element {
       if (window.electronAPI) window.electronAPI.removeUpdateListener()
     }
   }, [])
+
+  const dismissToast = useCallback(() => setShowUpdateToast(false), [])
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'createdAt'>): void => {
     const newTxn: Transaction = {
@@ -80,10 +102,13 @@ export default function App(): React.JSX.Element {
           setFilterCategory={setFilterCategory}
           addTransaction={addTransaction}
           deleteTransaction={deleteTransaction}
-          updatePreference={updatePreference}
-          onUpdatePreferenceChange={handleUpdatePreferenceChange}
         />
       </div>
+
+      {/* Just-updated toast — bottom right, appears once after update */}
+      {showUpdateToast && updatedVersion && (
+        <JustUpdatedToast version={updatedVersion} onDismiss={dismissToast} />
+      )}
     </div>
   )
 }
