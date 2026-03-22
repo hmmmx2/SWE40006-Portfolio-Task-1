@@ -11,6 +11,8 @@ export type FilterType = 'all' | 'income' | 'expense'
 export interface UpdateStatus {
   type: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
   message: string
+  percent?: number
+  version?: string
 }
 
 declare const __APP_VERSION__: string

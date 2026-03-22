@@ -12,6 +12,8 @@ export type UpdateStatusType =
 export interface UpdateStatus {
   type: UpdateStatusType
   message: string
+  percent?: number
+  version?: string
 }
 
 export interface UpdatePrompt {
@@ -46,6 +48,9 @@ const fintrackAPI = {
   },
   checkForUpdates: (): void => {
     ipcRenderer.send('check-for-updates')
+  },
+  restartAndInstall: (): void => {
+    ipcRenderer.send('restart-and-install')
   },
 }
 

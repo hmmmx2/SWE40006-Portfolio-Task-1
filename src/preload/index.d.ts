@@ -11,6 +11,8 @@ export type UpdateStatusType =
 export interface UpdateStatus {
   type: UpdateStatusType
   message: string
+  percent?: number
+  version?: string
 }
 
 export interface UpdatePrompt {
@@ -32,6 +34,7 @@ declare global {
       initUpdater: (pref: UpdatePreference) => void
       setUpdatePreference: (pref: UpdatePreference) => void
       checkForUpdates: () => void
+      restartAndInstall: () => void
     }
   }
 }

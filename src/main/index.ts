@@ -7,6 +7,8 @@ import icon from '../../resources/icon.png?asset'
 interface UpdateStatus {
   type: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
   message: string
+  percent?: number
+  version?: string
 }
 
 let mainWindow: BrowserWindow | null = null
@@ -61,9 +63,14 @@ app.whenReady().then(() => {
 
   ipcMain.on('ping', () => console.log('pong'))
 
+  // ── User clicks "Restart Now" in the UpdateBanner ─────────────────
+  ipcMain.on('restart-and-install', () => {
+    autoUpdater.quitAndInstall(false, true)
+  })
+
   createWindow()
 
-  // ── Silent auto-updater: download and install automatically ────────────────
+  // ── Silent auto-updater: downloads in background, user restarts manually ──
   if (app.isPackaged) {
     autoUpdater.autoDownload = true
     autoUpdater.checkForUpdates()
@@ -87,7 +94,11 @@ autoUpdater.on('checking-for-update', () => {
 })
 
 autoUpdater.on('update-available', (info) => {
-  sendUpdateStatus({ type: 'available', message: `Update v${info.version} found. Downloading in background...` })
+  sendUpdateStatus({
+    type: 'available',
+    message: `FinTrack v${info.version} is available. Downloading...`,
+    version: info.version,
+  })
 })
 
 autoUpdater.on('update-not-available', () => {
@@ -97,13 +108,18 @@ autoUpdater.on('update-not-available', () => {
 autoUpdater.on('download-progress', (progress) => {
   sendUpdateStatus({
     type: 'downloading',
-    message: `Downloading update: ${Math.round(progress.percent)}%`,
+    message: `Downloading update...`,
+    percent: Math.round(progress.percent),
   })
 })
 
-autoUpdater.on('update-downloaded', () => {
-  sendUpdateStatus({ type: 'downloaded', message: 'Update downloaded. Restarting in 3 seconds...' })
-  setTimeout(() => autoUpdater.quitAndInstall(false, true), 3000)
+autoUpdater.on('update-downloaded', (info) => {
+  // Do NOT auto-restart — let user click "Restart Now"
+  sendUpdateStatus({
+    type: 'downloaded',
+    message: 'Update ready to install.',
+    version: info.version,
+  })
 })
 
 autoUpdater.on('error', (err: Error) => {
