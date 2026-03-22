@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Transaction, sampleTransactions } from './data/sampleData'
 import Sidebar from './components/Sidebar'
-import UpdateBanner from './components/UpdateBanner'
 import MainContent from './components/MainContent'
 import JustUpdatedToast from './components/JustUpdatedToast'
+import UpdateProgressToast from './components/UpdateProgressToast'
 
 export type ActiveView = 'dashboard' | 'transactions' | 'add' | 'insights'
 export type FilterType = 'all' | 'income' | 'expense'
@@ -92,8 +92,6 @@ export default function App(): React.JSX.Element {
         transactionCount={transactions.length}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
-        {updateStatus && <UpdateBanner status={updateStatus} />}
-
         <MainContent
           activeView={activeView}
           setActiveView={setActiveView}
@@ -106,6 +104,16 @@ export default function App(): React.JSX.Element {
           deleteTransaction={deleteTransaction}
         />
       </div>
+
+      {/* Update progress toast — bottom right, shown during download lifecycle */}
+      {updateStatus &&
+        updateStatus.type !== 'checking' &&
+        updateStatus.type !== 'up-to-date' && (
+          <UpdateProgressToast
+            status={updateStatus}
+            onDismiss={() => setUpdateStatus(null)}
+          />
+        )}
 
       {/* Just-updated toast — bottom right, appears once after update */}
       {showUpdateToast && updatedVersion && (

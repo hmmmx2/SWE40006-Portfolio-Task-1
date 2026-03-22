@@ -70,10 +70,12 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  // ── Silent auto-updater: downloads in background, user restarts manually ──
+  // ── Silent auto-updater: delay 4s so app fully renders first ─────────────
   if (app.isPackaged) {
     autoUpdater.autoDownload = true
-    autoUpdater.checkForUpdates()
+    setTimeout(() => {
+      autoUpdater.checkForUpdates()
+    }, 4000)
   }
 
   app.on('activate', function () {
