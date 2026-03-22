@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(\"/c/Users/whisp/Documents/Portfolio Task:*)",
-      "Bash(grep -rn '\\\\$' \"/c/Users/whisp/Documents/Portfolio Task 1/fintrack/src/renderer/src/components/\" --include=\"*.tsx\")"
+      "Bash(grep -rn '\\\\$' \"/c/Users/whisp/Documents/Portfolio Task 1/fintrack/src/renderer/src/components/\" --include=\"*.tsx\")",
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(''version:'', p.version\\)\")",
+      "Bash(npm run:*)"
     ]
   }
 }

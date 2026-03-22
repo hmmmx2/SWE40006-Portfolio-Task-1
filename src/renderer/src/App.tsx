@@ -4,9 +4,11 @@ import Sidebar from './components/Sidebar'
 import MainContent from './components/MainContent'
 import JustUpdatedToast from './components/JustUpdatedToast'
 import UpdateProgressToast from './components/UpdateProgressToast'
+import UpdateDialog from './components/UpdateDialog'
 
-export type ActiveView = 'dashboard' | 'transactions' | 'add'
+export type ActiveView = 'dashboard' | 'transactions' | 'add' | 'insights' | 'settings'
 export type FilterType = 'all' | 'income' | 'expense'
+export type UpdatePreference = 'auto' | 'notify' | 'manual'
 
 export interface UpdateStatus {
   type: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -17,6 +19,8 @@ export interface UpdateStatus {
 
 // Update types that represent an active update in progress
 const ACTIVE_UPDATE_TYPES = new Set(['available', 'downloading', 'downloaded'])
+
+const PREF_KEY = 'fintrack-update-preference'
 
 declare const __APP_VERSION__: string
 
@@ -29,6 +33,18 @@ export default function App(): React.JSX.Element {
   const [updateToastVisible, setUpdateToastVisible] = useState(false)
   const [showJustUpdatedToast, setShowJustUpdatedToast] = useState(false)
   const [updatedVersion, setUpdatedVersion] = useState<string>('')
+
+  // Update preference (persisted in localStorage)
+  const [updatePreference, setUpdatePreference] = useState<UpdatePreference>(
+    () => (localStorage.getItem(PREF_KEY) as UpdatePreference) ?? 'auto',
+  )
+
+  // Notify-mode dialog
+  const [updatePrompt, setUpdatePrompt] = useState<{
+    version: string
+    releaseNotes: string
+  } | null>(null)
+  const skippedVersionRef = useRef<string>('')
 
   // Ref so IPC callback always sees latest status without stale closure
   const updateStatusRef = useRef<UpdateStatus | null>(null)
@@ -44,6 +60,13 @@ export default function App(): React.JSX.Element {
     }
     localStorage.setItem(STORAGE_KEY, currentVersion)
   }, [])
+
+  // ── Send saved preference to main on startup ───────────────────────
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.initUpdater(updatePreference)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-updater IPC listener ──────────────────────────────────────
   useEffect(() => {
@@ -83,6 +106,12 @@ export default function App(): React.JSX.Element {
       }
     })
 
+    // Notify mode: show the update dialog
+    window.electronAPI.onUpdatePrompt((data) => {
+      if (skippedVersionRef.current === data.version) return
+      setUpdatePrompt(data)
+    })
+
     return () => {
       if (window.electronAPI) window.electronAPI.removeUpdateListener()
     }
@@ -96,6 +125,29 @@ export default function App(): React.JSX.Element {
 
   const dismissJustUpdatedToast = useCallback(() => setShowJustUpdatedToast(false), [])
 
+  // ── Update preference ──────────────────────────────────────────────
+  const handleUpdatePreferenceChange = useCallback((pref: UpdatePreference) => {
+    setUpdatePreference(pref)
+    localStorage.setItem(PREF_KEY, pref)
+    if (window.electronAPI) window.electronAPI.setUpdatePreference(pref)
+  }, [])
+
+  // ── Notify-mode dialog actions ─────────────────────────────────────
+  const handleUpdateNow = useCallback(() => {
+    setUpdatePrompt(null)
+    if (window.electronAPI) window.electronAPI.downloadUpdate()
+  }, [])
+
+  const handleRemindLater = useCallback(() => {
+    setUpdatePrompt(null)
+  }, [])
+
+  const handleSkipVersion = useCallback(() => {
+    if (updatePrompt) skippedVersionRef.current = updatePrompt.version
+    setUpdatePrompt(null)
+  }, [updatePrompt])
+
+  // ── Transactions ───────────────────────────────────────────────────
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'createdAt'>): void => {
     const newTxn: Transaction = {
       ...transaction,
@@ -147,6 +199,8 @@ export default function App(): React.JSX.Element {
           setFilterCategory={setFilterCategory}
           addTransaction={addTransaction}
           deleteTransaction={deleteTransaction}
+          updatePreference={updatePreference}
+          onUpdatePreferenceChange={handleUpdatePreferenceChange}
         />
       </div>
 
@@ -161,6 +215,16 @@ export default function App(): React.JSX.Element {
       {/* Just-updated toast — appears once after update */}
       {showJustUpdatedToast && updatedVersion && (
         <JustUpdatedToast version={updatedVersion} onDismiss={dismissJustUpdatedToast} />
+      )}
+
+      {/* Notify-mode update dialog */}
+      {updatePrompt && (
+        <UpdateDialog
+          version={updatePrompt.version}
+          onUpdateNow={handleUpdateNow}
+          onRemindLater={handleRemindLater}
+          onSkipVersion={handleSkipVersion}
+        />
       )}
     </div>
   )

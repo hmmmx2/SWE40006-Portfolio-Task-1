@@ -1,4 +1,4 @@
-import { Wallet, LayoutDashboard, List, PlusCircle } from 'lucide-react'
+import { Wallet, LayoutDashboard, List, PlusCircle, Lightbulb, Settings } from 'lucide-react'
 import type { ActiveView } from '../App'
 
 interface SidebarProps {
@@ -31,6 +31,9 @@ export default function Sidebar({
     },
     { id: 'add', label: 'Add Transaction', icon: <PlusCircle className="w-4 h-4" /> },
   ]
+
+  const insightsItems: { id: ActiveView; label: string; icon: React.ReactNode; badge?: string }[] =
+    [{ id: 'insights', label: 'Insights', icon: <Lightbulb className="w-4 h-4" />, badge: 'New' }]
 
   return (
     <aside className="w-52 flex-shrink-0 h-screen bg-white border-r border-border flex flex-col">
@@ -67,6 +70,29 @@ export default function Sidebar({
           </button>
         ))}
 
+        <p className="text-[10px] font-semibold text-faint uppercase tracking-widest px-2 mb-1 mt-3">
+          Analytics
+        </p>
+        {insightsItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveView(item.id)}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium cursor-pointer mb-0.5 transition-colors ${
+              activeView === item.id
+                ? 'bg-active-nav text-ink font-semibold'
+                : 'text-muted hover:text-ink hover:bg-hover'
+            }`}
+          >
+            {item.icon}
+            <span className="flex-1 text-left">{item.label}</span>
+            {item.badge && (
+              <span className="text-[10px] font-semibold bg-income text-white px-1.5 py-0.5 rounded-full">
+                {item.badge}
+              </span>
+            )}
+          </button>
+        ))}
+
       </nav>
 
       {/* Bottom Stats */}
@@ -95,8 +121,23 @@ export default function Sidebar({
         </div>
       </div>
 
+      {/* Settings */}
+      <div className="px-2.5 pb-2 border-t border-border pt-2">
+        <button
+          onClick={() => setActiveView('settings')}
+          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors ${
+            activeView === 'settings'
+              ? 'bg-active-nav text-ink font-semibold'
+              : 'text-muted hover:text-ink hover:bg-hover'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span className="flex-1 text-left">Settings</span>
+        </button>
+      </div>
+
       {/* Version */}
-      <div className="px-3.5 pb-3 border-t border-border pt-2">
+      <div className="px-3.5 pb-3 pt-1">
         <span className="text-[10px] text-faint font-mono">v{__APP_VERSION__}</span>
       </div>
     </aside>

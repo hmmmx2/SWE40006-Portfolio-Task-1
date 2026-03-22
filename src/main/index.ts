@@ -4,6 +4,8 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 
+type UpdatePreference = 'auto' | 'notify' | 'manual'
+
 interface UpdateStatus {
   type: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
   message: string
@@ -12,6 +14,7 @@ interface UpdateStatus {
 }
 
 let mainWindow: BrowserWindow | null = null
+let currentPref: UpdatePreference = 'auto'
 
 function sendUpdateStatus(status: UpdateStatus): void {
   if (mainWindow) {
@@ -63,20 +66,46 @@ app.whenReady().then(() => {
 
   ipcMain.on('ping', () => console.log('pong'))
 
-  // ── User clicks "Restart Now" in the UpdateBanner ─────────────────
+  // ── Restart and install update ─────────────────────────────────────
   ipcMain.on('restart-and-install', () => {
     autoUpdater.quitAndInstall(true, true)
   })
 
-  createWindow()
+  // ── Same handler wired via install-update-now (notify mode) ────────
+  ipcMain.on('install-update-now', () => {
+    autoUpdater.quitAndInstall(true, true)
+  })
 
-  // ── Silent auto-updater: delay 4s so app fully renders first ─────────────
-  if (app.isPackaged) {
-    autoUpdater.autoDownload = true
-    setTimeout(() => {
-      autoUpdater.checkForUpdates()
-    }, 4000)
-  }
+  // ── Renderer sends saved preference on startup ─────────────────────
+  ipcMain.on('init-updater', (_event, pref: UpdatePreference) => {
+    currentPref = pref
+    if (!app.isPackaged) return
+    autoUpdater.autoDownload = pref === 'auto'
+    if (pref !== 'manual') {
+      setTimeout(() => {
+        autoUpdater.checkForUpdates()
+      }, 4000)
+    }
+  })
+
+  // ── User changes preference in Settings ────────────────────────────
+  ipcMain.on('set-update-preference', (_event, pref: UpdatePreference) => {
+    currentPref = pref
+    autoUpdater.autoDownload = pref === 'auto'
+  })
+
+  // ── Manual check from Settings panel ──────────────────────────────
+  ipcMain.on('check-for-updates', () => {
+    if (!app.isPackaged) return
+    autoUpdater.checkForUpdates()
+  })
+
+  // ── Notify mode: user clicked "Update Now" in dialog ──────────────
+  ipcMain.on('update-download-now', () => {
+    autoUpdater.downloadUpdate()
+  })
+
+  createWindow()
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -96,11 +125,22 @@ autoUpdater.on('checking-for-update', () => {
 })
 
 autoUpdater.on('update-available', (info) => {
-  sendUpdateStatus({
-    type: 'available',
-    message: `FinTrack v${info.version} is available. Downloading...`,
-    version: info.version,
-  })
+  if (currentPref === 'notify') {
+    // Show a dialog — user decides whether to download
+    if (mainWindow) {
+      mainWindow.webContents.send('update-prompt', {
+        version: info.version,
+        releaseNotes: info.releaseNotes ?? '',
+      })
+    }
+  } else {
+    // auto: show toast, autoDownload will kick in automatically
+    sendUpdateStatus({
+      type: 'available',
+      message: `FinTrack v${info.version} is available. Downloading...`,
+      version: info.version,
+    })
+  }
 })
 
 autoUpdater.on('update-not-available', () => {
