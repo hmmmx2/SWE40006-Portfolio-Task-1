@@ -4,15 +4,12 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 
-type UpdatePreference = 'auto' | 'notify' | 'manual'
-
 interface UpdateStatus {
   type: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
   message: string
 }
 
 let mainWindow: BrowserWindow | null = null
-let updatePreference: UpdatePreference = 'notify'
 
 function sendUpdateStatus(status: UpdateStatus): void {
   if (mainWindow) {
@@ -66,29 +63,11 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  // ── Renderer sends stored preference on mount ──────────────────────────────
-  ipcMain.on('init-updater', (_event, pref: UpdatePreference) => {
-    if (!app.isPackaged) return
-    updatePreference = pref
-    autoUpdater.autoDownload = pref === 'auto'
-    if (pref !== 'manual') autoUpdater.checkForUpdates()
-  })
-
-  // ── User changed preference in Settings ────────────────────────────────────
-  ipcMain.on('set-update-preference', (_event, pref: UpdatePreference) => {
-    updatePreference = pref
-    autoUpdater.autoDownload = pref === 'auto'
-  })
-
-  // ── User clicked "Update Now" in dialog ────────────────────────────────────
-  ipcMain.on('update-download-now', () => {
-    autoUpdater.downloadUpdate()
-  })
-
-  // ── User clicked "Check Now" in Settings ───────────────────────────────────
-  ipcMain.on('check-for-updates', () => {
-    if (app.isPackaged) autoUpdater.checkForUpdates()
-  })
+  // ── Silent auto-updater: download and install automatically ────────────────
+  if (app.isPackaged) {
+    autoUpdater.autoDownload = true
+    autoUpdater.checkForUpdates()
+  }
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -108,14 +87,7 @@ autoUpdater.on('checking-for-update', () => {
 })
 
 autoUpdater.on('update-available', (info) => {
-  if (updatePreference === 'auto') {
-    sendUpdateStatus({ type: 'available', message: `Update v${info.version} found. Downloading silently...` })
-  } else {
-    mainWindow?.webContents.send('update-prompt', {
-      version: info.version,
-      releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : '',
-    })
-  }
+  sendUpdateStatus({ type: 'available', message: `Update v${info.version} found. Downloading in background...` })
 })
 
 autoUpdater.on('update-not-available', () => {
@@ -130,13 +102,8 @@ autoUpdater.on('download-progress', (progress) => {
 })
 
 autoUpdater.on('update-downloaded', () => {
-  if (updatePreference === 'auto') {
-    sendUpdateStatus({ type: 'downloaded', message: 'Update downloaded. Restarting in 3 seconds...' })
-    setTimeout(() => autoUpdater.quitAndInstall(false, true), 3000)
-  } else {
-    sendUpdateStatus({ type: 'downloaded', message: 'Update ready. Restarting...' })
-    setTimeout(() => autoUpdater.quitAndInstall(false, true), 2000)
-  }
+  sendUpdateStatus({ type: 'downloaded', message: 'Update downloaded. Restarting in 3 seconds...' })
+  setTimeout(() => autoUpdater.quitAndInstall(false, true), 3000)
 })
 
 autoUpdater.on('error', (err: Error) => {

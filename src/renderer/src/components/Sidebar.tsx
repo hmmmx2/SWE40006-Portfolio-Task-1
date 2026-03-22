@@ -1,4 +1,4 @@
-import { Wallet, LayoutDashboard, List, PlusCircle, Lightbulb, Settings } from 'lucide-react'
+import { Wallet, LayoutDashboard, List, PlusCircle, Lightbulb } from 'lucide-react'
 import type { ActiveView } from '../App'
 
 interface SidebarProps {
@@ -91,20 +91,6 @@ export default function Sidebar({
           </button>
         ))}
 
-        <p className="text-[10px] font-semibold text-faint uppercase tracking-widest px-2 mb-1 mt-4">
-          Preferences
-        </p>
-        <button
-          onClick={() => setActiveView('settings')}
-          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium cursor-pointer mb-0.5 transition-colors ${
-            activeView === 'settings'
-              ? 'bg-active-nav text-ink font-semibold'
-              : 'text-muted hover:text-ink hover:bg-hover'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span className="flex-1 text-left">Settings</span>
-        </button>
       </nav>
 
       {/* Bottom Stats */}

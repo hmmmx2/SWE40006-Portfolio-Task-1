@@ -1,7 +1,7 @@
 {
   "name": "fintrack",
   "productName": "FinTrack",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "A personal finance tracker desktop application built with Electron and React.",
   "main": "./out/main/index.js",
   "author": "hmmmx2",
