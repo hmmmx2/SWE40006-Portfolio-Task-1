@@ -78,7 +78,7 @@ export default function Dashboard({
           <p className="text-sm text-muted mt-0.5">Here is your financial overview</p>
         </div>
         <span className="text-[10px] text-faint font-mono bg-hover border border-border px-2.5 py-1 rounded-full">
-          v1.0.0
+          v{__APP_VERSION__}
         </span>
       </div>
 

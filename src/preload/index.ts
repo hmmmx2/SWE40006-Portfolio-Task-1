@@ -14,12 +14,38 @@ export interface UpdateStatus {
   message: string
 }
 
+export interface UpdatePrompt {
+  version: string
+  releaseNotes: string
+}
+
+export type UpdatePreference = 'auto' | 'notify' | 'manual'
+
 const fintrackAPI = {
   onUpdateStatus: (callback: (data: UpdateStatus) => void): void => {
     ipcRenderer.on('update-status', (_event, data: UpdateStatus) => callback(data))
   },
   removeUpdateListener: (): void => {
     ipcRenderer.removeAllListeners('update-status')
+    ipcRenderer.removeAllListeners('update-prompt')
+  },
+  onUpdatePrompt: (callback: (data: UpdatePrompt) => void): void => {
+    ipcRenderer.on('update-prompt', (_event, data: UpdatePrompt) => callback(data))
+  },
+  downloadUpdate: (): void => {
+    ipcRenderer.send('update-download-now')
+  },
+  installUpdateNow: (): void => {
+    ipcRenderer.send('install-update-now')
+  },
+  initUpdater: (pref: UpdatePreference): void => {
+    ipcRenderer.send('init-updater', pref)
+  },
+  setUpdatePreference: (pref: UpdatePreference): void => {
+    ipcRenderer.send('set-update-preference', pref)
+  },
+  checkForUpdates: (): void => {
+    ipcRenderer.send('check-for-updates')
   },
 }
 
