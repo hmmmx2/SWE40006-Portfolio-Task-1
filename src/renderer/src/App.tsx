@@ -5,11 +5,8 @@ import UpdateBanner from './components/UpdateBanner'
 import UpdateDialog from './components/UpdateDialog'
 import MainContent from './components/MainContent'
 
-export type ActiveView = 'dashboard' | 'transactions' | 'add' | 'insights' | 'settings'
+export type ActiveView = 'dashboard' | 'transactions' | 'add' | 'insights'
 export type FilterType = 'all' | 'income' | 'expense'
-export type UpdatePreference = 'auto' | 'notify' | 'manual'
-
-const UPDATE_PREF_KEY = 'fintrack-update-preference'
 
 export interface UpdateStatus {
   type: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -25,30 +22,15 @@ export default function App(): React.JSX.Element {
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [updatePrompt, setUpdatePrompt] = useState<{ version: string } | null>(null)
-  const [updatePreference, setUpdatePreferenceState] = useState<UpdatePreference>(
-    () => (localStorage.getItem(UPDATE_PREF_KEY) as UpdatePreference) ?? 'notify'
-  )
-
-  const handleUpdatePreferenceChange = (pref: UpdatePreference): void => {
-    setUpdatePreferenceState(pref)
-    localStorage.setItem(UPDATE_PREF_KEY, pref)
-    if (window.electronAPI) window.electronAPI.setUpdatePreference(pref)
-  }
 
   useEffect(() => {
     if (window.electronAPI) {
-      // Send stored preference to main process on startup
-      window.electronAPI.initUpdater(updatePreference)
-
-      // Listen for download progress / completion
       window.electronAPI.onUpdateStatus((data: UpdateStatus) => {
         setUpdateStatus(data)
         if (data.type === 'up-to-date' || data.type === 'checking') {
           setTimeout(() => setUpdateStatus(null), 5000)
         }
       })
-
-      // Listen for update-available prompt (only fires in notify mode)
       window.electronAPI.onUpdatePrompt((data) => {
         const skipped = localStorage.getItem(SKIP_KEY)
         if (skipped === data.version) return
@@ -58,7 +40,7 @@ export default function App(): React.JSX.Element {
     return () => {
       if (window.electronAPI) window.electronAPI.removeUpdateListener()
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleUpdateNow = (): void => {
     setUpdatePrompt(null)
@@ -134,8 +116,6 @@ export default function App(): React.JSX.Element {
           setFilterCategory={setFilterCategory}
           addTransaction={addTransaction}
           deleteTransaction={deleteTransaction}
-          updatePreference={updatePreference}
-          onUpdatePreferenceChange={handleUpdatePreferenceChange}
         />
       </div>
     </div>
