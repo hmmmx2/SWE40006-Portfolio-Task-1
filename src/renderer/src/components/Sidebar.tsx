@@ -1,4 +1,4 @@
-import { Wallet, LayoutDashboard, List, PlusCircle, Lightbulb } from 'lucide-react'
+import { Wallet, LayoutDashboard, List, PlusCircle } from 'lucide-react'
 import type { ActiveView } from '../App'
 
 interface SidebarProps {
@@ -30,7 +30,6 @@ export default function Sidebar({
       badge: String(transactionCount),
     },
     { id: 'add', label: 'Add Transaction', icon: <PlusCircle className="w-4 h-4" /> },
-    { id: 'insights', label: 'Insights', icon: <Lightbulb className="w-4 h-4" />, badge: 'New' },
   ]
 
   return (
@@ -48,7 +47,7 @@ export default function Sidebar({
         <p className="text-[10px] font-semibold text-faint uppercase tracking-widest px-2 mb-1">
           Menu
         </p>
-        {navItems.slice(0, 3).map((item) => (
+        {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveView(item.id)}
@@ -62,29 +61,6 @@ export default function Sidebar({
             <span className="flex-1 text-left">{item.label}</span>
             {item.badge && (
               <span className="text-[10px] font-semibold bg-border text-muted px-1.5 py-0.5 rounded-full">
-                {item.badge}
-              </span>
-            )}
-          </button>
-        ))}
-
-        <p className="text-[10px] font-semibold text-faint uppercase tracking-widest px-2 mb-1 mt-4">
-          Insights
-        </p>
-        {navItems.slice(3).map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveView(item.id)}
-            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium cursor-pointer mb-0.5 transition-colors ${
-              activeView === item.id
-                ? 'bg-active-nav text-ink font-semibold'
-                : 'text-muted hover:text-ink hover:bg-hover'
-            }`}
-          >
-            {item.icon}
-            <span className="flex-1 text-left">{item.label}</span>
-            {item.badge && (
-              <span className="text-[10px] font-semibold bg-income-bg text-income px-1.5 py-0.5 rounded-full">
                 {item.badge}
               </span>
             )}

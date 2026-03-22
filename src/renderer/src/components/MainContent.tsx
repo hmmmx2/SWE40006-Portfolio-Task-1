@@ -3,7 +3,6 @@ import type { ActiveView, FilterType } from '../App'
 import Dashboard from './Dashboard'
 import TransactionList from './TransactionList'
 import AddTransactionForm from './AddTransactionForm'
-import InsightsPanel from './InsightsPanel'
 
 interface MainContentProps {
   activeView: ActiveView
@@ -53,7 +52,6 @@ export default function MainContent({
           onCancel={() => setActiveView('dashboard')}
         />
       )}
-      {activeView === 'insights' && <InsightsPanel transactions={transactions} />}
     </main>
   )
 }
